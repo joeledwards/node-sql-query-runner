@@ -54,7 +54,7 @@ runQuery = (client, queries) ->
 
 # Runs the queries
 runQueries = (config, queries) ->
-  uri = "postgres://#{config.user}:#{config.pass}@#{config.host}:#{config.port}/#{config.db}"
+  uri = "postgres://#{config.username}:#{config.password}@#{config.host}:#{config.port}/#{config.database}"
   pgConnect uri
   .then (context) ->
     runQuery context.client, queries
@@ -83,9 +83,9 @@ runScript = ->
   config =
     host: program.host ? 'localhost'
     port: program.port ? 5432
-    user: program.username ? 'postgres'
-    pass: program.password ? ''
-    db: program.database ? 'postgres'
+    username: program.username ? 'postgres'
+    password: program.password ? ''
+    database: program.database ? 'postgres'
     quiet: program.quiet ? false
   
   readQueriesFile queriesFile
