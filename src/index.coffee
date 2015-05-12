@@ -1,3 +1,4 @@
+_ = require 'lodash'
 Q = require 'q'
 FS = require 'fs'
 pg = require 'pg'
@@ -7,18 +8,20 @@ durations = require 'durations'
 # Read the SQL queries from the file
 readQueriesFile = (file, separator=';') ->
   deferred = Q.defer()
-  if file
+  if not file?
     deferred.resolve {}
   else
-    FS.readFileSync file, (error, contents) ->
+    FS.readFile file, {encoding: 'utf8'}, (error, contents) ->
       if error
         deferred.reject error
       else
         try
-          queries = []
-          queries.push(query) for query in _(contents.split(separator)).map(_.trim).filter((query) ->
+          queries = _(contents.split(separator))
+          .map (query) ->
+            _.trim query
+          .filter (query) ->
             query.length > 0
-          )
+          .value()
           deferred.resolve queries
         catch error
           deferred.reject error
@@ -27,10 +30,15 @@ readQueriesFile = (file, separator=';') ->
 # Connect to the database at the specified URI 
 pgConnect = (uri) ->
   deferred = Q.defer()
+  console.log "connecting..."
+  connectWatch = durations.stopwatch().start()
   pg.connect uri, (error, client, done) ->
+    connectWatch.stop()
     if error
+      console.log "[#{error}] connect timeout. Time elapsed: #{connectWatch}"
       deferred.reject error
     else
+      console.log "Connected."
       context =
         client : client
         done : (error) ->
@@ -41,6 +49,7 @@ pgConnect = (uri) ->
 # Runs individual queries, logging the query and its results to the console
 runQuery = (client, queries) ->
   if queries.length < 1
+    console.log "No more queries."
     deferred = Q.defer()
     deferred.resolve 0
     return deferred.promise
@@ -55,16 +64,17 @@ runQuery = (client, queries) ->
 # Runs the queries
 runQueries = (config, queries) ->
   uri = "postgres://#{config.username}:#{config.password}@#{config.host}:#{config.port}/#{config.database}"
+  console.log "Connecting to URI '#{uri}'"
   pgConnect uri
   .then (context) ->
+    console.log "Ready to query."
     runQuery context.client, queries
     .then ->
       return context
-  .then (context)
+  .then (context) ->
     context.done()
   .catch (error) ->
     console.log "Error running queries: #{error}\nStack:\n#{error.stack}"
-    context.done error
 
 # Script was run directly
 runScript = ->
@@ -75,7 +85,7 @@ runScript = ->
     .option '-p, --port <port>', 'Postgres port (default is 5432)', parseInt
     .option '-P, --password <password>', 'Postgres user password (default is empty)'
     .option '-q, --quiet', 'Silence non-error output (default is false)'
-    .option '-u, --username <username>', 'Posgres user name (default is postgres)', parseInt
+    .option '-u, --username <username>', 'Posgres user name (default is postgres)'
     .parse(process.argv)
 
   queriesFile = _(program.args).first()
@@ -84,13 +94,13 @@ runScript = ->
     host: program.host ? 'localhost'
     port: program.port ? 5432
     username: program.username ? 'postgres'
-    password: program.password ? ''
+    password: program.password ? 'postgres'
     database: program.database ? 'postgres'
     quiet: program.quiet ? false
   
   readQueriesFile queriesFile
   .then (queries) ->
-    runQueries queries
+    runQueries config, queries
   .catch (error) ->
     console.log "Error reading queries from file '#{queriesFile}' : #{error}\nStack:\n#{error.stack}"
 
