@@ -96,9 +96,9 @@ runScript = ->
 
 # Module
 module.exports =
-  run : runQueries
+  run: runQueries
 
 # If run directly
-if require.main == module:
+if require.main == module
   runScript()
 

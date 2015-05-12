@@ -35,3 +35,11 @@ Run as a standalone script
 sql-query-runnner --username=user --password=pass queries.sql
 ```
 
+
+Build
+=====
+
+```bash
+cake build
+```
+
