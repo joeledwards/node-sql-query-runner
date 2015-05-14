@@ -9,7 +9,7 @@ durations = require 'durations'
 readQueriesFile = (file, separator=';') ->
   deferred = Q.defer()
   if not file?
-    deferred.resolve {}
+    deferred.resolve []
   else
     FS.readFile file, {encoding: 'utf8'}, (error, contents) ->
       if error
@@ -17,11 +17,17 @@ readQueriesFile = (file, separator=';') ->
       else
         try
           queries = _(contents.split(separator))
+          .filter (query) ->
+            if query?
+              true
+            else
+              false
           .map (query) ->
             _.trim query
           .filter (query) ->
             query.length > 0
           .value()
+          console.log "queries: #{queries}"
           deferred.resolve queries
         catch error
           deferred.reject error
@@ -48,18 +54,22 @@ pgConnect = (uri) ->
 
 # Runs individual queries, logging the query and its results to the console
 runQuery = (client, queries) ->
-  if queries.length < 1
-    console.log "No more queries."
-    deferred = Q.defer()
-    deferred.resolve 0
-    return deferred.promise
-  else
+  deferred = Q.defer()
+  if _(queries).size() > 0
     query = _(queries).first()
     console.log "\nRunning Query '#{query}'\n"
-    return client.query query
-    .then (result) ->
-      console.log "Result:\n", result
-      runQuery client, _(queries).rest()
+    client.query query, (error, results) ->
+      if error?
+        deferred.reject error
+      else
+        console.log "Result:\n", results.rows
+        runQuery client, _(queries).rest()
+        .then ->
+          deferred.resolve 0
+  else
+    console.log "No queries remaining."
+    deferred.resolve 0
+  return deferred.promise
 
 # Runs the queries
 runQueries = (config, queries) ->
@@ -67,11 +77,14 @@ runQueries = (config, queries) ->
   console.log "Connecting to URI '#{uri}'"
   pgConnect uri
   .then (context) ->
+    context.watch = durations.stopwatch().start()
     console.log "Ready to query."
     runQuery context.client, queries
     .then ->
       return context
   .then (context) ->
+    context.watch.stop()
+    console.log "Wrapping up connection. All queries took #{context.watch}"
     context.done()
   .catch (error) ->
     console.log "Error running queries: #{error}\nStack:\n#{error.stack}"
