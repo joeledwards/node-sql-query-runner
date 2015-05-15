@@ -49,6 +49,7 @@ pgConnect = (uri) ->
         client : client
         done : (error) ->
           done(error)
+          client.end()
       deferred.resolve context
   deferred.promise
 
