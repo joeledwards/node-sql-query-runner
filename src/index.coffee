@@ -76,6 +76,7 @@ runQuery = (client, queries) ->
 runQueries = (config, queries) ->
   uri = "postgres://#{config.username}:#{config.password}@#{config.host}:#{config.port}/#{config.database}"
   console.log "Connecting to URI '#{uri}'"
+
   pgConnect uri
   .then (context) ->
     context.watch = durations.stopwatch().start()
@@ -83,10 +84,11 @@ runQueries = (config, queries) ->
     runQuery context.client, queries
     .then ->
       return context
-  .then (context) ->
-    context.watch.stop()
-    console.log "Wrapping up connection. All queries took #{context.watch}"
-    context.done()
+    .then (context) ->
+      context.watch.stop()
+      console.log "Wrapping up connection. All queries took #{context.watch}"
+    .finally ->
+      context.done()
   .catch (error) ->
     console.log "Error running queries: #{error}\nStack:\n#{error.stack}"
 
