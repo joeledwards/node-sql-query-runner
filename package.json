@@ -5,7 +5,7 @@
     "RDBMS",
     "Query"
   ],
-  "version": "1.1.1",
+  "version": "1.1.2",
   "author": "Joel Edwards (https://github.com/joeledwards)",
   "contributors": [
     "Joel Edwards <joeledwards@gmail.com> (https://github.com/joeledwards)"
@@ -25,7 +25,7 @@
     "lib": "./lib"
   },
   "bin": {
-    "wait-for-postgres": "./bin/sql-query-runner"
+    "sql-query-runner": "./bin/sql-query-runner"
   },
   "dependencies" : {
     "commander": "~2.8",
