@@ -2,7 +2,7 @@
 SQL Query Runner
 ===========
 
-Runs all files in the supplied file against a Postgres database.
+Runs all files in the supplied file against a Postgres or MySQL database.
 
 
 Installation
