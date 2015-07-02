@@ -1,8 +1,11 @@
+# SQL Query Runner
 
-SQL Query Runner
-===========
+[![Build Status](https://api.travis-ci.org/tj/sql-query-runner.js.svg)](http://travis-ci.org/tj/sql-query-runner.js)
+[![NPM Version](http://img.shields.io/npm/v/sql-query-runner.svg?style=flat)](https://www.npmjs.org/package/sql-query-runner)
+[![NPM Downloads](https://img.shields.io/npm/dm/sql-query-runner.svg?style=flat)](https://www.npmjs.org/package/sql-query-runner)
 
-Runs all files in the supplied file against a Postgres or MySQL database.
+
+Run all queries in the supplied file against a Postgres or MySQL database.
 
 
 Installation
