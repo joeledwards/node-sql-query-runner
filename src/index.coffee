@@ -2,6 +2,7 @@ _ = require 'lodash'
 Q = require 'q'
 FS = require 'fs'
 pg = require 'pg'
+mysql = require 'mysql'
 program = require 'commander'
 durations = require 'durations'
 
@@ -33,21 +34,41 @@ readQueriesFile = (file, separator=';') ->
           deferred.reject error
   deferred.promise
 
+mysqlConnect = (config) ->
+  deferred = Q.defer()
+  console.log "connecting to MySQL..."
+  connectWatch = durations.stopwatch().start()
+  connection = mysql.mysql.createConnection config
+  connection.connect (error) ->
+    if error
+      console.log "Error connecting to MySQL:", error, "\nStack:\n", error.stack
+      deferred.reject error
+    else
+      console.log "Connected." if not config.quiet
+      context =
+        client: client
+        done: (callack) ->
+          connection.end () ->
+            console.log "Disconnected." if disconnected
+            callback() if callback
+      deferred.resolve context
+  deferred.promise
+
 # Connect to the database at the specified URI 
 pgConnect = (uri) ->
   deferred = Q.defer()
-  console.log "connecting..."
+  console.log "connecting to PostgreSQL..."
   connectWatch = durations.stopwatch().start()
   pg.connect uri, (error, client, done) ->
     connectWatch.stop()
     if error
-      console.log "[#{error}] connect timeout. Time elapsed: #{connectWatch}"
+      console.log "Error connecting to PostgreSQL:", error, "\nStack:\n", error.stack
       deferred.reject error
     else
-      console.log "Connected."
+      console.log "Connected." if not config.quiet
       context =
-        client : client
-        done : (error) ->
+        client: client
+        done: (error) ->
           done(error)
           client.end()
       deferred.resolve context
@@ -74,7 +95,7 @@ runQuery = (client, queries) ->
 
 # Runs the queries
 runQueries = (config, queries) ->
-  uri = "postgres://#{config.username}:#{config.password}@#{config.host}:#{config.port}/#{config.database}"
+  uri = "postgres://#{config.user}:#{config.password}@#{config.host}:#{config.port}/#{config.database}"
   console.log "Connecting to URI '#{uri}'"
 
   pgConnect uri
@@ -96,12 +117,13 @@ runQueries = (config, queries) ->
 runScript = ->
   program
     .usage('[options] <query_file>')
-    .option '-D, --database <db_name>', 'Postgres database (default is postgres)'
-    .option '-h, --host <hostname>', 'Postgres host (default is localhost)'
-    .option '-p, --port <port>', 'Postgres port (default is 5432)', parseInt
-    .option '-P, --password <password>', 'Postgres user password (default is empty)'
+    .option '-s, --schema [postgres|mysql]', 'schema for the connection (default is postgres)'
+    .option '-D, --database <db_name>', 'database (default is postgres)'
+    .option '-h, --host <hostname>', 'host (default is localhost)'
+    .option '-p, --port <port>', 'port (default is 5432)', parseInt
+    .option '-P, --password <password>', 'user password (default is empty)'
     .option '-q, --quiet', 'Silence non-error output (default is false)'
-    .option '-u, --username <username>', 'Posgres user name (default is postgres)'
+    .option '-u, --username <username>', 'user name (default is postgres)'
     .parse(process.argv)
 
   queriesFile = _(program.args).first()
@@ -109,7 +131,7 @@ runScript = ->
   config =
     host: program.host ? 'localhost'
     port: program.port ? 5432
-    username: program.username ? 'postgres'
+    user: program.username ? 'postgres'
     password: program.password ? 'postgres'
     database: program.database ? 'postgres'
     quiet: program.quiet ? false

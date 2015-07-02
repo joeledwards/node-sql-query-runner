@@ -30,8 +30,9 @@
   "dependencies" : {
     "commander": "~2.8",
     "durations": "~1",
-    "lodash" : "~3.8",
-    "pg" : "~4.3",
+    "lodash" : "~3.10",
+    "mysql" : "~2.7",
+    "pg" : "~4.4",
     "q": "~1.4"
   },
   "devDependencies": {
