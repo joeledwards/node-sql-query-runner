@@ -1,6 +1,5 @@
 # SQL Query Runner
 
-[![Build Status](https://api.travis-ci.org/tj/node-sql-query-runner.js.svg)](http://travis-ci.org/tj/node-sql-query-runner.js)
 [![NPM Version](http://img.shields.io/npm/v/sql-query-runner.svg?style=flat)](https://www.npmjs.org/package/sql-query-runner)
 [![NPM Downloads](https://img.shields.io/npm/dm/sql-query-runner.svg?style=flat)](https://www.npmjs.org/package/sql-query-runner)
 
