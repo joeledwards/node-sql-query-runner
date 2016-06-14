@@ -154,7 +154,7 @@ runScript = ->
   queriesFile = _(program.args).first()
 
   config =
-    schema: program.schema
+    schema: program.schema ? 'postgres'
     host: program.host ? 'localhost'
     port: program.port ? 5432
     user: program.username ? 'postgres'
