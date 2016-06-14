@@ -1,5 +1,6 @@
 #!/bin/bash
 
+IMAGE_ID="postgres:9.5.3"
 CONTAINER_NAME="pg-query-runner"
 SQL_FILE="test-queries.sql"
 PG_USERNAME="test"
@@ -12,8 +13,9 @@ docker rm $CONTAINER_NAME
 docker run \
   -e POSTGRES_USER=$PG_USERNAME \
   -e POSTGRES_PASSWORD=$PG_PASSWORD \
+  -e POSTGRES_DATABASE=$PG_DATABASE \
   --name=$CONTAINER_NAME \
-  -P -d postgres:9.4
+  -P -d $IMAGE_ID
 
 PG_HOST="localhost"
 PG_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}' ${CONTAINER_NAME}`
@@ -35,6 +37,7 @@ coffee node_modules/wait-for-postgres/src/index.coffee \
 
 # Test the query runner
 coffee src/index.coffee \
+  --schema=postgres \
   --host=$PG_HOST \
   --port=$PG_PORT \
   --username=$PG_USERNAME \

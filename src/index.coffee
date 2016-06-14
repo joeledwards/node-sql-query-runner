@@ -75,7 +75,7 @@ pgConnect = (uri) ->
   deferred.promise
 
 # Runs individual queries, logging the query and its results to the console
-runQuery = (client, queries) ->
+runQuery = (client, queries, schema) ->
   deferred = Q.defer()
   if _(queries).size() > 0
     query = _(queries).first()
@@ -84,34 +84,59 @@ runQuery = (client, queries) ->
       if error?
         deferred.reject error
       else
+        rows = if schema == 'mysql' then results else results.rows
         console.log "Result:\n", results.rows
-        runQuery client, _(queries).rest()
-        .then ->
-          deferred.resolve 0
+        runQuery client, _(queries).rest(), schema
+        .then -> deferred.resolve 0
   else
     console.log "No queries remaining."
     deferred.resolve 0
   return deferred.promise
 
-# Runs the queries
-runQueries = (config, queries) ->
+# Runs the queries against MySQL
+runMysqlQueries = (config, queries) ->
+  myCfg =
+    host: config.host
+    port: config.port
+    user: config.user
+    password: config.password
+    database: config.database
+  console.log "Connecting to database:\n'#{JSON.stringify(myCfg)}'"
+
+  mysqlConnect myCfg
+  .then (context) ->
+    context.watch = durations.stopwatch().start()
+    console.log "Ready to query MySQL."
+    runQuery context.client, queries
+    .then ->
+      context.watch.stop()
+      console.log "Wrapping up connection. All queries took #{context.watch}"
+    .finally -> context.done()
+  .catch (error) ->
+    console.log "Error running queries: #{error}\nStack:\n#{error.stack}"
+
+# Runs the queries against PostgreSQL
+runPgQueries = (config, queries) ->
   uri = "postgres://#{config.user}:#{config.password}@#{config.host}:#{config.port}/#{config.database}"
   console.log "Connecting to URI '#{uri}'"
 
   pgConnect uri
   .then (context) ->
     context.watch = durations.stopwatch().start()
-    console.log "Ready to query."
+    console.log "Ready to query PostgreSQL."
     runQuery context.client, queries
     .then ->
-      return context
-    .then (context) ->
       context.watch.stop()
       console.log "Wrapping up connection. All queries took #{context.watch}"
-    .finally ->
-      context.done()
+    .finally -> context.done()
   .catch (error) ->
     console.log "Error running queries: #{error}\nStack:\n#{error.stack}"
+
+runQueries = (config, queries) ->
+  switch config.schema
+    when 'postgres' then runPgQueries config, queries
+    when 'mysql' then runMysqlQueries config, queries
+    else console.error "Invalid schema. Valid values are 'postgres' and 'mysql'"
 
 # Script was run directly
 runScript = ->
