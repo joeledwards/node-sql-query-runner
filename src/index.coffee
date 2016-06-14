@@ -142,10 +142,10 @@ runQueries = (config, queries) ->
 runScript = ->
   program
     .usage('[options] <query_file>')
-    .option '-s, --schema [postgres|mysql]', 'schema for the connection (default is postgres)'
-    .option '-D, --database <db_name>', 'database (default is postgres)'
-    .option '-h, --host <hostname>', 'host (default is localhost)'
-    .option '-p, --port <port>', 'port (default is 5432)', parseInt
+    .option '-s, --schema <schema>', 'schema for the connection can be "postgres" or "mysql" (default is postgres)'
+    .option '-D, --database <database>', 'database (default is postgres)'
+    .option '-h, --host <host>', "the Postgres server'shostname (default is localhost)"
+    .option '-p, --port <port>', "the Postgres server's port (default is 5432)", parseInt
     .option '-P, --password <password>', 'user password (default is empty)'
     .option '-q, --quiet', 'Silence non-error output (default is false)'
     .option '-u, --username <username>', 'user name (default is postgres)'
@@ -154,6 +154,7 @@ runScript = ->
   queriesFile = _(program.args).first()
 
   config =
+    schema: program.schema
     host: program.host ? 'localhost'
     port: program.port ? 5432
     user: program.username ? 'postgres'
