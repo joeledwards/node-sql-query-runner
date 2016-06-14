@@ -86,7 +86,7 @@ runQuery = (client, queries, schema) ->
       else
         rows = if schema == 'mysql' then results else results.rows
         console.log "Result:\n", results.rows
-        runQuery client, _(queries).rest(), schema
+        runQuery client, _.tail(queries), schema
         .then -> deferred.resolve 0
   else
     console.log "No queries remaining."
