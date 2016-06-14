@@ -34,11 +34,11 @@ readQueriesFile = (file, separator=';') ->
           deferred.reject error
   deferred.promise
 
-mysqlConnect = (config) ->
+mysqlConnect = (mysqlConfig, config) ->
   deferred = Q.defer()
   console.log "connecting to MySQL..."
   connectWatch = durations.stopwatch().start()
-  connection = mysql.mysql.createConnection config
+  connection = mysql.mysql.createConnection mysqlConfig
   connection.connect (error) ->
     if error
       console.log "Error connecting to MySQL:", error, "\nStack:\n", error.stack
@@ -55,7 +55,7 @@ mysqlConnect = (config) ->
   deferred.promise
 
 # Connect to the database at the specified URI 
-pgConnect = (uri) ->
+pgConnect = (uri, config) ->
   deferred = Q.defer()
   console.log "connecting to PostgreSQL..."
   connectWatch = durations.stopwatch().start()
@@ -103,7 +103,7 @@ runMysqlQueries = (config, queries) ->
     database: config.database
   console.log "Connecting to database:\n'#{JSON.stringify(myCfg)}'"
 
-  mysqlConnect myCfg
+  mysqlConnect myCfg, config
   .then (context) ->
     context.watch = durations.stopwatch().start()
     console.log "Ready to query MySQL."
@@ -120,7 +120,7 @@ runPgQueries = (config, queries) ->
   uri = "postgres://#{config.user}:#{config.password}@#{config.host}:#{config.port}/#{config.database}"
   console.log "Connecting to URI '#{uri}'"
 
-  pgConnect uri
+  pgConnect uri, config
   .then (context) ->
     context.watch = durations.stopwatch().start()
     console.log "Ready to query PostgreSQL."
