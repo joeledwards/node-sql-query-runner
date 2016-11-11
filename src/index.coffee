@@ -38,7 +38,7 @@ mysqlConnect = (mysqlConfig, config) ->
   deferred = Q.defer()
   console.log "connecting to MySQL..."
   connectWatch = durations.stopwatch().start()
-  connection = mysql.mysql.createConnection mysqlConfig
+  connection = mysql.createConnection mysqlConfig
   connection.connect (error) ->
     if error
       console.log "Error connecting to MySQL:", error, "\nStack:\n", error.stack
@@ -176,4 +176,3 @@ module.exports =
 # If run directly
 if require.main == module
   runScript()
-
