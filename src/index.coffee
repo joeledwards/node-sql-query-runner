@@ -75,7 +75,7 @@ pgConnect = (uri, config) ->
   deferred.promise
 
 # Runs individual queries, logging the query and its results to the console
-runQuery = (client, queries, schema) ->
+runQuery = (client, queries, scheme) ->
   deferred = Q.defer()
   if _(queries).size() > 0
     query = _(queries).first()
@@ -84,9 +84,9 @@ runQuery = (client, queries, schema) ->
       if error?
         deferred.reject error
       else
-        rows = if schema == 'mysql' then results else results.rows
+        rows = if scheme == 'mysql' then results else results.rows
         console.log "Result:\n", results.rows
-        runQuery client, _.tail(queries), schema
+        runQuery client, _.tail(queries), scheme
         .then -> deferred.resolve 0
   else
     console.log "No queries remaining."
@@ -133,16 +133,16 @@ runPgQueries = (config, queries) ->
     console.log "Error running queries: #{error}\nStack:\n#{error.stack}"
 
 runQueries = (config, queries) ->
-  switch config.schema
+  switch config.scheme
     when 'postgres' then runPgQueries config, queries
     when 'mysql' then runMysqlQueries config, queries
-    else console.error "Invalid schema. Valid values are 'postgres' and 'mysql'"
+    else console.error "Invalid scheme. Valid values are 'postgres' and 'mysql'"
 
 # Script was run directly
 runScript = ->
   program
     .usage('[options] <query_file>')
-    .option '-s, --schema <schema>', 'schema for the connection can be "postgres" or "mysql" (default is postgres)'
+    .option '-s, --scheme <scheme>', 'scheme for the connection can be "postgres" or "mysql" (default is postgres)'
     .option '-D, --database <database>', 'database (default is postgres)'
     .option '-h, --host <host>', "the Postgres server'shostname (default is localhost)"
     .option '-p, --port <port>', "the Postgres server's port (default is 5432)", parseInt
@@ -154,7 +154,7 @@ runScript = ->
   queriesFile = _(program.args).first()
 
   config =
-    schema: program.schema ? 'postgres'
+    scheme: program.scheme ? 'postgres'
     host: program.host ? 'localhost'
     port: program.port ? 5432
     user: program.username ? 'postgres'
