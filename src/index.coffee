@@ -46,10 +46,9 @@ mysqlConnect = (mysqlConfig, config) ->
     else
       console.log "Connected." if not config.quiet
       context =
-        client: client
-        done: (callack) ->
+        client: connection
+        done: (callback) ->
           connection.end () ->
-            console.log "Disconnected." if disconnected
             callback() if callback
       deferred.resolve context
   deferred.promise
