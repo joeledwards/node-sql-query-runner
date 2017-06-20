@@ -94,6 +94,7 @@ runQuery = (client, queries, scheme) ->
 
 # Runs the queries against MySQL
 runMysqlQueries = (config, queries) ->
+  # Extract only those fields which are of interest to MySQL
   myCfg =
     host: config.host
     port: config.port
@@ -116,7 +117,8 @@ runMysqlQueries = (config, queries) ->
 
 # Runs the queries against PostgreSQL
 runPgQueries = (config, queries) ->
-  uri = "postgres://#{config.user}:#{config.password}@#{config.host}:#{config.port}/#{config.database}"
+  {user, password, host, port, database}
+  uri = "postgres://#{user}:#{password}@#{host}:#{port}/#{database}"
   console.log "Connecting to URI '#{uri}'"
 
   pgConnect uri, config
@@ -131,7 +133,16 @@ runPgQueries = (config, queries) ->
   .catch (error) ->
     console.log "Error running queries: #{error}\nStack:\n#{error.stack}"
 
-runQueries = (config, queries) ->
+runQueries = (partialConfig, queries) ->
+  config =
+    scheme: partialConfig.scheme ? 'postgres'
+    host: partialConfig.host ? 'localhost'
+    port: partialConfig.port ? 5432
+    user: partialConfig.username ? 'postgres'
+    password: partialConfig.password ? 'postgres'
+    database: partialConfig.database ? 'postgres'
+    quiet: partialConfig.quiet ? false
+
   switch config.scheme
     when 'postgres' then runPgQueries config, queries
     when 'mysql' then runMysqlQueries config, queries
@@ -141,29 +152,29 @@ runQueries = (config, queries) ->
 runScript = ->
   program
     .usage('[options] <query_file>')
-    .option '-s, --scheme <scheme>', 'scheme for the connection can be "postgres" or "mysql" (default is postgres)'
-    .option '-D, --database <database>', 'database (default is postgres)'
-    .option '-h, --host <host>', "the Postgres server'shostname (default is localhost)"
+    .option '-s, --scheme <scheme>', 'scheme for the connection can be "postgres" or "mysql" (default is "postgres")'
+    .option '-D, --database <database>', 'database (default is "postgres")'
+    .option '-h, --host <host>', 'the Postgres server\'s hostname (default is "localhost")'
     .option '-p, --port <port>', "the Postgres server's port (default is 5432)", parseInt
-    .option '-P, --password <password>', 'user password (default is empty)'
+    .option '-P, --password <password>', 'user password (default is "")'
     .option '-q, --quiet', 'Silence non-error output (default is false)'
-    .option '-u, --username <username>', 'user name (default is postgres)'
+    .option '-u, --username <username>', 'user name (default is "postgres")'
     .parse(process.argv)
 
   queriesFile = _(program.args).first()
 
-  config =
-    scheme: program.scheme ? 'postgres'
-    host: program.host ? 'localhost'
-    port: program.port ? 5432
-    user: program.username ? 'postgres'
-    password: program.password ? 'postgres'
-    database: program.database ? 'postgres'
-    quiet: program.quiet ? false
+  partialConfig = 
+    scheme: program.scheme
+    host: program.host
+    port: program.port
+    user: program.username
+    password: program.password
+    database: program.database
+    quiet: program.quiet
   
   readQueriesFile queriesFile
   .then (queries) ->
-    runQueries config, queries
+    runQueries partialConfig, queries
   .catch (error) ->
     console.log "Error reading queries from file '#{queriesFile}' : #{error}\nStack:\n#{error.stack}"
 
