@@ -117,7 +117,7 @@ runMysqlQueries = (config, queries) ->
 
 # Runs the queries against PostgreSQL
 runPgQueries = (config, queries) ->
-  {user, password, host, port, database}
+  {user, password, host, port, database} = config
   uri = "postgres://#{user}:#{password}@#{host}:#{port}/#{database}"
   console.log "Connecting to URI '#{uri}'"
 
