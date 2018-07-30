@@ -1,8 +1,10 @@
 _ = require 'lodash'
+c = require '@buzuli/color'
 Q = require 'q'
 FS = require 'fs'
 pg = require 'pg'
 mysql = require 'mysql'
+buzJson = require '@buzuli/json'
 program = require 'commander'
 durations = require 'durations'
 
@@ -27,8 +29,16 @@ readQueriesFile = (file, separator=';') ->
             _.trim query
           .filter (query) ->
             query.length > 0
+          .map (query) ->
+            query + ';'
           .value()
-          console.log "queries: #{queries}"
+
+          queriesString = _ queries
+          .join '\n\n'
+
+          console.log c.yellow "=== #{c.blue 'Queries'} ========================\n"
+          console.log "#{queriesString}\n"
+          console.log c.yellow "===================================="
           deferred.resolve queries
         catch error
           deferred.reject error
@@ -36,7 +46,6 @@ readQueriesFile = (file, separator=';') ->
 
 mysqlConnect = (mysqlConfig, config) ->
   deferred = Q.defer()
-  console.log "connecting to MySQL..."
   connectWatch = durations.stopwatch().start()
   connection = mysql.createConnection mysqlConfig
   connection.connect (error) ->
@@ -54,41 +63,41 @@ mysqlConnect = (mysqlConfig, config) ->
   deferred.promise
 
 # Connect to the database at the specified URI 
-pgConnect = (uri, config) ->
+pgConnect = (config) ->
   deferred = Q.defer()
-  console.log "connecting to PostgreSQL..."
   connectWatch = durations.stopwatch().start()
-  pg.connect uri, (error, client, done) ->
+
+  pgClient = new pg.Client config
+
+  pgClient
+  .connect()
+  .then ->
     connectWatch.stop()
-    if error
-      console.log "Error connecting to PostgreSQL:", error, "\nStack:\n", error.stack
-      deferred.reject error
-    else
-      console.log "Connected." if not config.quiet
-      context =
-        client: client
-        done: (error) ->
-          done(error)
-          client.end()
-      deferred.resolve context
-  deferred.promise
+    console.log "Connected." if not config.quiet
+    context =
+      client: pgClient
+      done: (error) ->
+        if error then Promise.reject error else pgClient.end()
+    context
+  .catch (error) ->
+    console.log "Error connecting to PostgreSQL:", error, "\nStack:\n", error.stack
+    throw error
 
 # Runs individual queries, logging the query and its results to the console
 runQuery = (client, queries, scheme) ->
   deferred = Q.defer()
   if _(queries).size() > 0
     query = _(queries).first()
-    console.log "\nRunning Query '#{query}'\n"
+    console.log "#{c.yellow('Running Query')} '#{query}'"
     client.query query, (error, results) ->
       if error?
         deferred.reject error
       else
         rows = if scheme == 'mysql' then results else results.rows
-        console.log "Result:\n", results.rows
+        console.log c.green("Result:\n"), results.rows, "\n"
         runQuery client, _.tail(queries), scheme
         .then -> deferred.resolve 0
   else
-    console.log "No queries remaining."
     deferred.resolve 0
   return deferred.promise
 
@@ -101,16 +110,18 @@ runMysqlQueries = (config, queries) ->
     user: config.user
     password: config.password
     database: config.database
-  console.log "Connecting to database:\n'#{JSON.stringify(myCfg)}'"
+  console.log "Connecting to database:\n'#{buzJson(myCfg)}'"
 
   mysqlConnect myCfg, config
   .then (context) ->
     context.watch = durations.stopwatch().start()
-    console.log "Ready to query MySQL."
+    console.log c.blue "Ready to query MySQL.\n"
     runQuery context.client, queries
     .then ->
       context.watch.stop()
-      console.log "Wrapping up connection. All queries took #{context.watch}"
+      console.log c.blue "Closing connection.
+        All queries took #{c.orange context.watch.format()}
+      "
     .finally -> context.done()
   .catch (error) ->
     console.log "Error running queries: #{error}\nStack:\n#{error.stack}"
@@ -119,16 +130,25 @@ runMysqlQueries = (config, queries) ->
 runPgQueries = (config, queries) ->
   {user, password, host, port, database} = config
   uri = "postgres://#{user}:#{password}@#{host}:#{port}/#{database}"
-  console.log "Connecting to URI '#{uri}'"
+  cfg =
+    connectionString: uri
+    #host: host
+    #port: port
+    #user: user
+    #password: password
+    #database: database
+  console.log "Connecting to URI '#{c.blue(uri)}'"
 
-  pgConnect uri, config
+  pgConnect cfg
   .then (context) ->
     context.watch = durations.stopwatch().start()
-    console.log "Ready to query PostgreSQL."
+    console.log c.blue "Ready to query PostgreSQL.\n"
     runQuery context.client, queries
     .then ->
       context.watch.stop()
-      console.log "Wrapping up connection. All queries took #{context.watch}"
+      console.log c.blue "Closing connection.
+        All queries took #{c.orange context.watch.format()}
+      "
     .finally -> context.done()
   .catch (error) ->
     console.log "Error running queries: #{error}\nStack:\n#{error.stack}"

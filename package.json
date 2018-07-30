@@ -23,16 +23,18 @@
     "sql-query-runner": "./bin/sql-query-runner"
   },
   "dependencies": {
+    "@buzuli/color": "^1.3.1",
+    "@buzuli/json": "^1.1.3",
     "commander": "^2.9.0",
-    "durations": "^2.2.0",
+    "durations": "^3.4.1",
     "lodash": "^4.13.1",
-    "mysql": "^2.11.1",
-    "pg": "^5.1.0",
+    "mysql": "^2.16.0",
+    "pg": "^7.4.3",
     "q": "^1.4.1"
   },
   "devDependencies": {
     "coffee-script": "^1.10.0",
-    "mocha": "^2.5.3",
+    "mocha": "^5.2.0",
     "timeunit": "^1.1.1",
     "wait-for-mysql": "^1.0.0",
     "wait-for-postgres": "^1.4.0"
