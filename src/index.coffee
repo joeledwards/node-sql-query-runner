@@ -94,7 +94,7 @@ runQuery = (client, queries, scheme) ->
         deferred.reject error
       else
         rows = if scheme == 'mysql' then results else results.rows
-        console.log c.green("Result:\n"), results.rows, "\n"
+        console.log c.green("Result:\n"), rows, "\n"
         runQuery client, _.tail(queries), scheme
         .then -> deferred.resolve 0
   else
@@ -107,7 +107,7 @@ runMysqlQueries = (config, queries) ->
   myCfg =
     host: config.host
     port: config.port
-    user: config.user
+    user: config.username
     password: config.password
     database: config.database
   console.log "Connecting to database:\n'#{buzJson(myCfg)}'"
@@ -116,7 +116,7 @@ runMysqlQueries = (config, queries) ->
   .then (context) ->
     context.watch = durations.stopwatch().start()
     console.log c.blue "Ready to query MySQL.\n"
-    runQuery context.client, queries
+    runQuery context.client, queries, config.scheme
     .then ->
       context.watch.stop()
       console.log c.blue "Closing connection.
@@ -128,13 +128,13 @@ runMysqlQueries = (config, queries) ->
 
 # Runs the queries against PostgreSQL
 runPgQueries = (config, queries) ->
-  {user, password, host, port, database} = config
-  uri = "postgres://#{user}:#{password}@#{host}:#{port}/#{database}"
+  {username, password, host, port, database} = config
+  uri = "postgres://#{username}:#{password}@#{host}:#{port}/#{database}"
   cfg =
     connectionString: uri
     #host: host
     #port: port
-    #user: user
+    #user: username
     #password: password
     #database: database
   console.log "Connecting to URI '#{c.blue(uri)}'"
@@ -143,7 +143,7 @@ runPgQueries = (config, queries) ->
   .then (context) ->
     context.watch = durations.stopwatch().start()
     console.log c.blue "Ready to query PostgreSQL.\n"
-    runQuery context.client, queries
+    runQuery context.client, queries, config.scheme
     .then ->
       context.watch.stop()
       console.log c.blue "Closing connection.
@@ -158,7 +158,7 @@ runQueries = (partialConfig, queries) ->
     scheme: partialConfig.scheme ? 'postgres'
     host: partialConfig.host ? 'localhost'
     port: partialConfig.port ? 5432
-    user: partialConfig.username ? 'postgres'
+    username: partialConfig.username ? 'postgres'
     password: partialConfig.password ? 'postgres'
     database: partialConfig.database ? 'postgres'
     quiet: partialConfig.quiet ? false
@@ -183,11 +183,11 @@ runScript = ->
 
   queriesFile = _(program.args).first()
 
-  partialConfig = 
+  partialConfig =
     scheme: program.scheme
     host: program.host
     port: program.port
-    user: program.username
+    username: program.username
     password: program.password
     database: program.database
     quiet: program.quiet
